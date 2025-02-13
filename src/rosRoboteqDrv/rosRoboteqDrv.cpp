@@ -1,22 +1,30 @@
 #include "rosRoboteqDrv.h"
 
+#include "roboteq_node_ros2/msg/wheels_msg.hpp"
+#include "roboteq_node_ros2/srv/actuators.hpp"
+#include "roboteq_node_ros2/srv/send_can_command.hpp"
+#include "rosidl_typesupport_cpp/message_type_support.hpp"
+#include "rosidl_typesupport_cpp/service_type_support.hpp"
+
 typedef std::vector<std::string> TStrVec;
-void    Split(TStrVec& vec, const string& str);
+void Split(TStrVec& vec, const string& str);
 
 RosRoboteqDrv::RosRoboteqDrv(void)
- : _logEnabled(false), _comunicator(*this, *this)
+    : _nh(std::make_shared<rclcpp::Node>(NODE_NAME)),
+      _logEnabled(false),
+      _comunicator(*this, *this)
 {
 }
 
-bool    RosRoboteqDrv::Initialize()
+bool RosRoboteqDrv::Initialize()
 {
     try
     {
         std::string mode;
 
-        if (ros::param::get("~mode", mode) == false )
+        if (!_nh->get_parameter("mode", mode))
         {
-            ROS_FATAL_STREAM_NAMED(NODE_NAME, " Please specify mode parameter");
+            RCLCPP_FATAL(_nh->get_logger(), "Please specify mode parameter");
             return false;
         }
 
@@ -24,143 +32,109 @@ bool    RosRoboteqDrv::Initialize()
 
         std::string device;
 
-        if (ros::param::get("~device", device) == false )
+        if (!_nh->get_parameter("device", device))
         {
-            ROS_FATAL_STREAM_NAMED(NODE_NAME, " Please specify device parameter");
+            RCLCPP_FATAL(_nh->get_logger(), "Please specify device parameter");
             return false;
         }
 
-        if (ros::param::get("~left", _left) == false )
+        if (!_nh->get_parameter("left", _left))
         {
-            ROS_FATAL_STREAM_NAMED(NODE_NAME, " Please specify left parameter");
+            RCLCPP_FATAL(_nh->get_logger(), "Please specify left parameter");
             return false;
         }
 
-        if (ros::param::get("~right", _right) == false )
+        if (!_nh->get_parameter("right", _right))
         {
-            ROS_FATAL_STREAM_NAMED(NODE_NAME, " Please specify right parameter");
+            RCLCPP_FATAL(_nh->get_logger(), "Please specify right parameter");
             return false;
         }
 
-        ROS_INFO_STREAM_NAMED(NODE_NAME, "Channels Right: " << _right << ", Left: " << _left);
+        RCLCPP_INFO(_nh->get_logger(), "Channels Right: %s, Left: %s", _right.c_str(), _left.c_str());
 
-        _pub = _nh.advertise<geometry_msgs::Twist>("current_velocity", 1); 
+        _pub = _nh->create_publisher<roboteq_node_ros2::msg::WheelsMsg>("current_velocity", 10);
 
-        _service = _nh.advertiseService("set_actuators", &RosRoboteqDrv::SetActuatorPosition, this); 
-//        _service = _nh.advertiseService("manual_CAN_command", &RosRoboteqDrv::ManualCANCommand, this);
+        _service = _nh->create_service<roboteq_node_ros2::srv::Actuators>(
+            "set_actuator_position", std::bind(&RosRoboteqDrv::SetActuatorPosition, this, std::placeholders::_1, std::placeholders::_2));
+        _can_service = _nh->create_service<roboteq_node_ros2::srv::SendCANCommand>(
+            "manual_can_command", std::bind(&RosRoboteqDrv::ManualCANCommand, this, std::placeholders::_1, std::placeholders::_2));
 
         // Do not remove below line. Else it will
         // not print diag msg from lower libs
         _logEnabled = true;
 
-        if( mode == "can" )
-        	_comunicator.Open(RoboteqCom::eCAN, device);
+        if (mode == "can")
+            _comunicator.Open(RoboteqCom::eCAN, device);
         else
-        	_comunicator.Open(RoboteqCom::eSerial, device);
-        
-        if(_comunicator.Version().empty() )
+            _comunicator.Open(RoboteqCom::eSerial, device);
+
+        if (_comunicator.Version().empty())
             THROW_RUNTIME_ERROR("Failed to receive Roboteq Version");
 
-        if(_comunicator.Model().empty() )
+        if (_comunicator.Model().empty())
             THROW_RUNTIME_ERROR("Failed to receive Roboteq Model");
 
-        if(_comunicator.IsThreadRunning() == false)
+        if (_comunicator.IsThreadRunning() == false)
             THROW_RUNTIME_ERROR("Failed to spawn RoboReader Thread");
-        
-        _comunicator.IssueCommand("# C");   // Clears out telemetry strings
 
-	    if( _comunicator.Mode() == RoboteqCom::eSerial )
-	    {
-            _comunicator.IssueCommand("?S");    // Query for speed and enters this speed 
-                                            // request into telemetry system
-            _comunicator.IssueCommand("# 100"); // auto message response is 500ms
-	    }
+        _comunicator.IssueCommand("# C");  // Clears out telemetry strings
 
-        _sub = _nh.subscribe("cmd_vel", 1, &RosRoboteqDrv::CmdVelCallback, this);
-        _buttonSub = _nh.subscribe("xbox_controller", 1, &RosRoboteqDrv::XButtonCallback, this);
+        if (_comunicator.Mode() == RoboteqCom::eSerial)
+        {
+            _comunicator.IssueCommand("?S");     // Query for speed and enters this speed
+                                                 // request into telemetry system
+            _comunicator.IssueCommand("# 100");  // auto message response is 500ms
+        }
+
+        _sub = _nh->create_subscription<geometry_msgs::msg::Twist>(
+            "cmd_vel", 10, std::bind(&RosRoboteqDrv::CmdVelCallback, this, std::placeholders::_1));
     }
-    catch(std::exception& ex)
+    catch (std::exception& ex)
     {
-        ROS_ERROR_STREAM_NAMED(NODE_NAME,"Open Port Failed. Error: " << ex.what());
+        RCLCPP_ERROR(_nh->get_logger(), "Open Port Failed. Error: %s", ex.what());
         throw;
     }
 
     return true;
 }
 
-void    RosRoboteqDrv::Shutdown(void)
+void RosRoboteqDrv::Run(void)
 {
-    _comunicator.Close();
+    rclcpp::spin(_nh);
 }
 
-void    RosRoboteqDrv::XButtonCallback(const base_controller::Xbox_Button_Msg::ConstPtr& buttons)
+void RosRoboteqDrv::Shutdown(void)
 {
-    std::stringstream ss;
-
-    if( _comunicator.Mode() == RoboteqCom::eCAN )
-    {
-        if(buttons->a != 0)
-        {
-            ROS_INFO("--Going to DIG position--");
-            ss << "@04!G 1 900_@04!G 2 900";
-        }
-        else if(buttons->y != 0)
-        {
-            ROS_INFO("--Going to DUMP position--");
-            ss << "@04!G 1 -1000_@04!G 2 -1000";
-        }
-        else if(buttons->b != 0)
-        {
-            ROS_INFO("--Going to DRIVE position--");
-            ss << "@04!G 1 0_@04!G 2 0";
-        }
-    }
-
-    try
-    {
-        _comunicator.IssueCommand(ss.str());
-        ROS_INFO_STREAM("Actuator= " << ss.str());
-    }
-    catch(std::exception& ex)
-    {
-        ROS_ERROR_STREAM_NAMED(NODE_NAME,"IssueCommand : " << ex.what());
-        throw;
-    }
-    catch(...)
-    {
-        ROS_ERROR_STREAM_NAMED(NODE_NAME,"IssueCommand : ?");
-        throw;
-    }
-
+    rclcpp::shutdown();
 }
 
-void    RosRoboteqDrv::CmdVelCallback(const geometry_msgs::Twist::ConstPtr& twist_velocity)
+void RosRoboteqDrv::CmdVelCallback(const geometry_msgs::msg::Twist::SharedPtr twist_velocity)
 {
     _wheelVelocity = ConvertTwistToWheelVelocity(twist_velocity);
 
-    float leftVelRPM  = _wheelVelocity.left  / RPM_TO_RAD_PER_SEC;
+    float leftVelRPM = _wheelVelocity.left / RPM_TO_RAD_PER_SEC;
     float rightVelRPM = _wheelVelocity.right / RPM_TO_RAD_PER_SEC;
 
     // now round the wheel velocity to int
 
     std::stringstream ss;
 
-    if( _comunicator.Mode() == RoboteqCom::eSerial )
+    if (_comunicator.Mode() == RoboteqCom::eSerial)
     {
         ss << "!G " << _left << " " << (((int)leftVelRPM) * 100);
         ss << "_!G " << _right << " " << (((int)rightVelRPM) * 100);
     }
     else
     {
-       // ss << "@00!G " << _left << " " << (((int)leftVelRPM) * 100);
-       // ss << "_@00!G " << _right << " " << (((int)rightVelRPM) * 100);
-        
-        for( int i = 1; i <= 3; i++) // 3 is number of wheel pairs
+        // ss << "@00!G " << _left << " " << (((int)leftVelRPM) * 100);
+        // ss << "_@00!G " << _right << " " << (((int)rightVelRPM) * 100);
+
+        for (int i = 1; i <= 3; i++)  // 3 is number of wheel pairs
         {
-            if( i != 1 )
+            if (i != 1)
                 ss << "_";
 
-            ss <<  "@0" << i << "!G " << _left  << " " << (((int)leftVelRPM)  * 100);
+            ss << "@0" << i << "!G " << _left << " " << (((int)leftVelRPM) * 100);
             ss << "_@0" << i << "!G " << _right << " " << (((int)rightVelRPM) * 100);
         }
     }
@@ -168,28 +142,29 @@ void    RosRoboteqDrv::CmdVelCallback(const geometry_msgs::Twist::ConstPtr& twis
     try
     {
         _comunicator.IssueCommand(ss.str());
-        ROS_INFO_STREAM("Wheels= " << ss.str());
+        RCLCPP_INFO(_nh->get_logger(), "WheelsMsg= %s", ss.str().c_str());
     }
-    catch(std::exception& ex)
+    catch (std::exception& ex)
     {
-        ROS_ERROR_STREAM_NAMED(NODE_NAME,"IssueCommand : " << ex.what());
-	    throw;
+        RCLCPP_ERROR(_nh->get_logger(), "IssueCommand : %s", ex.what());
+        throw;
     }
-    catch(...)
+    catch (...)
     {
-        ROS_ERROR_STREAM_NAMED(NODE_NAME,"IssueCommand : ?");
-	    throw;
+        RCLCPP_ERROR(_nh->get_logger(), "IssueCommand : ?");
+        throw;
     }
 }
 
-bool RosRoboteqDrv::SetActuatorPosition(TSrvAct_Req &req, TSrvAct_Res &res)
+bool RosRoboteqDrv::SetActuatorPosition(const std::shared_ptr<TSrvAct_Req> req,
+                                        std::shared_ptr<TSrvAct_Res> res)
 {
     std::stringstream ss;
 
-    if( _comunicator.Mode() == RoboteqCom::eCAN )
+    if (_comunicator.Mode() == RoboteqCom::eCAN)
     {
-        ss << "@04!G 1 " << req.actuator_position;
-        ss << "_@04!G 2 " << req.actuator_position;
+        ss << "@04!G 1 " << req->actuator_position;
+        ss << "_@04!G 2 " << req->actuator_position;
 
         // ss << "@00!G 1 " << req.actuator_position;
         // ss << "_@00!G 2 " << req.actuator_position;
@@ -198,54 +173,55 @@ bool RosRoboteqDrv::SetActuatorPosition(TSrvAct_Req &req, TSrvAct_Res &res)
     try
     {
         _comunicator.IssueCommand(ss.str());
-        ROS_INFO_STREAM("Actr= " << ss.str());
+        RCLCPP_INFO(_nh->get_logger(), "Actr= %s", ss.str().c_str());
     }
-    catch(std::exception& ex)
+    catch (std::exception& ex)
     {
-        ROS_ERROR_STREAM_NAMED(NODE_NAME,"IssueCommand : " << ex.what());
+        RCLCPP_ERROR(_nh->get_logger(), "IssueCommand : %s", ex.what());
         throw;
     }
-    catch(...)
+    catch (...)
     {
-        ROS_ERROR_STREAM_NAMED(NODE_NAME,"IssueCommand : ?");
+        RCLCPP_ERROR(_nh->get_logger(), "IssueCommand : ?");
         throw;
     }
     return true;
 }
 
-bool RosRoboteqDrv::ManualCANCommand(TSrvCAN_Req &req, TSrvCAN_Res &res)
+bool RosRoboteqDrv::ManualCANCommand(const std::shared_ptr<TSrvCAN_Req> req,
+                                     std::shared_ptr<TSrvCAN_Res> res)
 {
     std::stringstream ss;
 
-    if( _comunicator.Mode() == RoboteqCom::eCAN )
+    if (_comunicator.Mode() == RoboteqCom::eCAN)
     {
-        ss << "@0" << req.can_id  << "!G " << req.channel << " " << req.speed;
+        ss << "@0" << req->can_id << "!G " << req->channel << " " << req->speed;
     }
 
     try
     {
         _comunicator.IssueCommand(ss.str());
-        ROS_INFO_STREAM("ManualCMD= " << ss.str());
+        RCLCPP_INFO(_nh->get_logger(), "ManualCMD= %s", ss.str().c_str());
     }
-    catch(std::exception& ex)
+    catch (std::exception& ex)
     {
-        ROS_ERROR_STREAM_NAMED(NODE_NAME,"IssueCommand : " << ex.what());
+        RCLCPP_ERROR(_nh->get_logger(), "IssueCommand : %s", ex.what());
         throw;
     }
-    catch(...)
+    catch (...)
     {
-        ROS_ERROR_STREAM_NAMED(NODE_NAME,"IssueCommand : ?");
+        RCLCPP_ERROR(_nh->get_logger(), "IssueCommand : ?");
         throw;
     }
     return true;
 }
 
-geometry_msgs::Twist RosRoboteqDrv::ConvertWheelVelocityToTwist(float left_velocity, float right_velocity)
+geometry_msgs::msg::Twist RosRoboteqDrv::ConvertWheelVelocityToTwist(float left_velocity, float right_velocity)
 {
-    // using the two equations for left and right, we solve for long. vel and we get two equations for it. Add them together, and we end up with VL = (right - left) * r / 2 
+    // using the two equations for left and right, we solve for long. vel and we get two equations for it. Add them together, and we end up with VL = (right - left) * r / 2
     float longitudinal_velocity = (right_velocity - left_velocity) * (WHEEL_DIAMETER_SCIPIO / 4);
 
-    geometry_msgs::Twist twistVelocity;
+    geometry_msgs::msg::Twist twistVelocity;
 
     // linear.x is just the average of left and right wheel velocities converted to linear by multiplying it by radius
     twistVelocity.linear.x = ((left_velocity + right_velocity) / 2) * (WHEEL_DIAMETER_SCIPIO / 2);
@@ -255,154 +231,149 @@ geometry_msgs::Twist RosRoboteqDrv::ConvertWheelVelocityToTwist(float left_veloc
     return twistVelocity;
 }
 
-roboteq_node::wheels_msg RosRoboteqDrv::ConvertTwistToWheelVelocity(const geometry_msgs::Twist::ConstPtr& twist_velocity) // look into removing permanently
+roboteq_node_ros2::msg::WheelsMsg RosRoboteqDrv::ConvertTwistToWheelVelocity(const geometry_msgs::msg::Twist::SharedPtr twist_velocity)  // look into removing permanently
 {
     float longitudinalVelocity = ((twist_velocity->angular.z) * (TRACK_WIDTH * TRACK_WIDTH + WHEEL_BASE * WHEEL_BASE)) / (2 * TRACK_WIDTH);
 
-    roboteq_node::wheels_msg wheelVelocity;
+    roboteq_node_ros2::msg::WheelsMsg wheelVelocity;
 
-    wheelVelocity.left      = -1*longitudinalVelocity + twist_velocity->linear.x;
-    wheelVelocity.right     = longitudinalVelocity + twist_velocity->linear.x;
+    wheelVelocity.left = -1 * longitudinalVelocity + twist_velocity->linear.x;
+    wheelVelocity.right = longitudinalVelocity + twist_velocity->linear.x;
 
     return wheelVelocity;
 }
 
 // RoboteqCom Events
-void    RosRoboteqDrv::OnMsgEvent(const IEventArgs& evt)
+void RosRoboteqDrv::OnMsgEvent(const IEventArgs& evt)
 {
-	ROS_DEBUG_STREAM_NAMED(NODE_NAME, "OnMsgEvent: " << evt.Reply());
+    RCLCPP_DEBUG(_nh->get_logger(), "OnMsgEvent: %s", evt.Reply().c_str());
 
-	switch( evt.Reply()[0] )
-	{
-		case 'S':
-			Process_S( evt );
-		break;
+    switch (evt.Reply()[0])
+    {
+        case 'S':
+            Process_S(evt);
+            break;
 
-		case 'G':
-			Process_G( evt );
-		break;
+        case 'G':
+            Process_G(evt);
+            break;
 
-		case 'N':
-			Process_N( evt );
-		break;
+        case 'N':
+            Process_N(evt);
+            break;
 
-		default:
-		break;
-			
-	}
+        default:
+            break;
+    }
 }
 
-void	RosRoboteqDrv::Process_S(const IEventArgs& evt)
+void RosRoboteqDrv::Process_S(const IEventArgs& evt)
 {
-	try
+    try
     {
-      	string::size_type idx = evt.Reply().find_first_of('=');
+        string::size_type idx = evt.Reply().find_first_of('=');
 
-        if( idx != string::npos )
+        if (idx != string::npos)
         {
-                //idx++;
-                string::size_type idy = evt.Reply().find_first_of(':', idx);
+            // idx++;
+            string::size_type idy = evt.Reply().find_first_of(':', idx);
 
-                if( idy != string::npos )
-                {
-                        char* pVal1 = (char*)(evt.Reply().c_str() + idx + 1);
-                        char* pVal2 = (char*)(evt.Reply().c_str() + idy);
+            if (idy != string::npos)
+            {
+                char* pVal1 = (char*)(evt.Reply().c_str() + idx + 1);
+                char* pVal2 = (char*)(evt.Reply().c_str() + idy);
 
-                        *pVal2 = 0L;
-                        pVal2++;
+                *pVal2 = 0L;
+                pVal2++;
 
-                        int firstVal  = atoi( pVal1 );
-                        int secondVal = atoi( pVal2 );
+                int firstVal = atoi(pVal1);
+                int secondVal = atoi(pVal2);
 
-			            roboteq_node::wheels_msg wheelVelocity;
+                roboteq_node_ros2::msg::WheelsMsg wheelVelocity;
 
-			            wheelVelocity.right 	= firstVal  * RPM_TO_RAD_PER_SEC;
-			            wheelVelocity.left		= secondVal * RPM_TO_RAD_PER_SEC;
+                wheelVelocity.right = firstVal * RPM_TO_RAD_PER_SEC;
+                wheelVelocity.left = secondVal * RPM_TO_RAD_PER_SEC;
 
-                        _pub.publish(RosRoboteqDrv::ConvertWheelVelocityToTwist(wheelVelocity.left, wheelVelocity.right));
-                        //ROS_INFO_STREAM("Wheel RPM's: " << firstVal << " :: " << secondVal);
-                }
-                else
-		        {
-                  	ROS_ERROR_STREAM_NAMED(NODE_NAME,"Invalid(2) S Reply Format");
-		        }
+                _pub->publish(wheelVelocity);
+                // RCLCPP_INFO(_nh->get_logger(), "Wheel RPM's: %d :: %d", firstVal, secondVal);
+            }
+            else
+            {
+                RCLCPP_ERROR(_nh->get_logger(), "Invalid(2) S Reply Format");
+            }
         }
         else
-	    {
-                ROS_ERROR_STREAM_NAMED(NODE_NAME,"Invalid(1) S Reply Format");
-	    }
-	}
-	catch(std::exception& ex)
-	{
-		ROS_ERROR_STREAM_NAMED(NODE_NAME,"Process_S : " << ex.what());
-	}
-	catch(...)
-	{
-		ROS_ERROR_STREAM_NAMED(NODE_NAME,"Process_S : ?");
-	}
+        {
+            RCLCPP_ERROR(_nh->get_logger(), "Invalid(1) S Reply Format");
+        }
+    }
+    catch (std::exception& ex)
+    {
+        RCLCPP_ERROR(_nh->get_logger(), "Process_S : %s", ex.what());
+    }
+    catch (...)
+    {
+        RCLCPP_ERROR(_nh->get_logger(), "Process_S : ?");
+    }
 }
 
-void    RosRoboteqDrv::Process_G(const IEventArgs& evt)
+void RosRoboteqDrv::Process_G(const IEventArgs& evt)
 {
-
 }
 
-void	RosRoboteqDrv::Process_N(const IEventArgs& evt)
+void RosRoboteqDrv::Process_N(const IEventArgs& evt)
 {
-
 }
 
-bool    RosRoboteqDrv::IsLogOpen(void) const
+bool RosRoboteqDrv::IsLogOpen(void) const
 {
     return _logEnabled;
 }
 
 // RoboteqCom and app Log Messages. Do append newline
-void    RosRoboteqDrv::LogLine(const char* pBuffer, unsigned int len)
+void RosRoboteqDrv::LogLine(const char* pBuffer, unsigned int len)
 {
-    ROS_INFO_STREAM_NAMED(NODE_NAME," - " << pBuffer);
+    RCLCPP_INFO(_nh->get_logger(), " - %s", pBuffer);
 }
 
 // RoboteqCom and app Log Messages. Do append newline
-void    RosRoboteqDrv::LogLine(const std::string& message)
+void RosRoboteqDrv::LogLine(const std::string& message)
 {
-	ROS_INFO_STREAM_NAMED(NODE_NAME," - " << message);
+    RCLCPP_INFO(_nh->get_logger(), " - %s", message.c_str());
 }
 
 // RoboteqCom and app Log Messages. Do not append newline
-void    RosRoboteqDrv::Log(const char* pBuffer, unsigned int len)
+void RosRoboteqDrv::Log(const char* pBuffer, unsigned int len)
 {
-    ROS_INFO_STREAM_NAMED(NODE_NAME," - " << pBuffer);
+    RCLCPP_INFO(_nh->get_logger(), " - %s", pBuffer);
 }
 
 // RoboteqCom and app Log Messages. Do not append newline
-void    RosRoboteqDrv::Log(const std::string& message)
+void RosRoboteqDrv::Log(const std::string& message)
 {
-	ROS_INFO_STREAM_NAMED(NODE_NAME,message);
+    RCLCPP_INFO(_nh->get_logger(), "%s", message.c_str());
 }
 
-void    Split(TStrVec& vec, const string& str)
+void Split(TStrVec& vec, const string& str)
 {
-    if( str.empty() )
+    if (str.empty())
         return;
 
     string::size_type startIdx(0);
 
-    while(true)
+    while (true)
     {
         string::size_type startIdy = str.find_first_of(' ', startIdx);
 
-        if( startIdy == string::npos )
+        if (startIdy == string::npos)
         {
-            vec.push_back( str.substr( startIdx ) );
+            vec.push_back(str.substr(startIdx));
             break;
         }
         else
         {
-            vec.push_back( str.substr( startIdx, startIdy -  startIdx) );
-            startIdx = startIdy+1;
+            vec.push_back(str.substr(startIdx, startIdy - startIdx));
+            startIdx = startIdy + 1;
         }
     }
 }
-
-

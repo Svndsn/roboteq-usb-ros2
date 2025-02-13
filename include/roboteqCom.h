@@ -18,72 +18,86 @@
 // General Public License for more details at
 // http://www.gnu.org/copyleft/gpl.html
 
-#include "serialPort.h"
 #include "roboteqComEvent.h"
 #include "roboteqComEventArgs.h"
 #include "roboteqThread.h"
+#include "serialPort.h"
 
 namespace oxoocoffee
 {
 
 class RoboteqCom : public IRunnable
 {
-    typedef IEventListener<const IEventArgs>  IRoboteqEvent;
-    typedef IDummyListener<const IEventArgs>  IDummyEvent;
+    typedef IEventListener<const IEventArgs> IRoboteqEvent;
+    typedef IDummyListener<const IEventArgs> IDummyEvent;
 
-    public:
-        enum eMode
-        {
-            eSerial,
-            eCAN
-        };
+   public:
+    enum eMode
+    {
+        eSerial,
+        eCAN
+    };
 
-        // Non threaded version
-        RoboteqCom(SerialLogger& log);
+    // Non threaded version
+    RoboteqCom(SerialLogger& log);
 
-        // Threaded version. We are using this one!!
-        RoboteqCom(SerialLogger& log, IRoboteqEvent& event);
-    
-        void    Open(eMode mode, const string& device);
-        void    Close(void);
+    // Threaded version. We are using this one!!
+    RoboteqCom(SerialLogger& log, IRoboteqEvent& event);
 
-        int     IssueCommand(const char* buffer, int size);
-        int     IssueCommand(const string&  command,
-                             const string&  args = "");
+    void Open(eMode mode, const string& device);
+    void Close(void);
 
-        int     ReadReply(string& reply);
+    int IssueCommand(const char* buffer, int size);
+    int IssueCommand(const string& command,
+                     const string& args = "");
 
-        inline       bool    IsThreadRunning(void) const { return _thread.IsRunning(); }
-        inline       bool    IsThreaded(void)      const { return _event.Type() == IRoboteqEvent::eReal; }
-        inline const string& Version(void)         const { return _version; }
-        inline const string& Model(void)           const { return _model; }
-        inline       eMode   Mode(void)            const { return _mode; }
+    int ReadReply(string& reply);
 
-    protected:
-        // IRunnable override
-        // Run is run the thread
-        // Join blocks for the thread to finish
-        virtual void Run(void);
+    inline bool IsThreadRunning(void) const
+    {
+        return _thread.IsRunning();
+    }
+    inline bool IsThreaded(void) const
+    {
+        return _event.Type() == IRoboteqEvent::eReal;
+    }
+    inline const string& Version(void) const
+    {
+        return _version;
+    }
+    inline const string& Model(void) const
+    {
+        return _model;
+    }
+    inline eMode Mode(void) const
+    {
+        return _mode;
+    }
 
-        // Used to synchronize on startup
-        bool    Synchronize(void);
+   protected:
+    // IRunnable override
+    // Run is run the thread
+    // Join blocks for the thread to finish
+    virtual void Run(void);
 
-    private:
-        void    CTorInit(void);
+    // Used to synchronize on startup
+    bool Synchronize(void);
 
-    private:
-        string          _device;
-        string          _version;
-        string          _model;
-        SerialPort      _port;
-        eMode           _mode;
-        IRoboteqEvent&  _event;
-        IDummyEvent     _dummyEvent; // do not use it. Only used to init _event reference
-        RoboteqThread   _thread;        
-        RoboMutex	    _mtx;
+   private:
+    void CTorInit(void);
+
+   private:
+    string _device;
+    string _version;
+    string _model;
+    SerialPort _port;
+    eMode _mode;
+    IRoboteqEvent& _event;
+    IDummyEvent _dummyEvent;  // do not use it. Only used to init _event reference
+    RoboteqThread _thread;
+    RoboMutex _mtx;
 };
 
-}   // End of amespace oxoocoffee
+}  // namespace oxoocoffee
 
-#endif // __ROBOTEQ_COM_H__
-
+#endif  // __ROBOTEQ_COM_H__

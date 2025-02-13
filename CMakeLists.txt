@@ -1,48 +1,67 @@
-cmake_minimum_required(VERSION 2.8.3)
-project(roboteq_node)
+cmake_minimum_required(VERSION 3.5)
+project(roboteq_node_ros2)
 
-find_package(catkin REQUIRED COMPONENTS roscpp std_msgs message_generation)
+find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(rosidl_default_generators REQUIRED)
+find_package(rosidl_typesupport_cpp REQUIRED)
+find_package(rosidl_default_runtime REQUIRED)
 
-add_message_files(
-    FILES
-    wheels_msg.msg
+# Add the message and service files
+rosidl_generate_interfaces(${PROJECT_NAME}
+  "msg/WheelsMsg.msg"
+  "srv/Actuators.srv"
+  "srv/SendCANCommand.srv"
+  DEPENDENCIES std_msgs
 )
 
-add_service_files(
-    FILES
-    Actuators.srv
-    SendCANCommand.srv
+ament_export_dependencies(rosidl_default_runtime)
+
+include_directories(include)
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/rosidl_generator_cpp)
+
+add_library(roboteq_node_lib SHARED
+  src/rosRoboteqDrv/rosRoboteqDrv.cpp
+  src/roboteqCom/roboteqCom.cpp
+  src/roboteqCom/roboteqThread.cpp
+  src/serialConnector/serialPort.cpp
+)
+ament_target_dependencies(roboteq_node_lib 
+  rclcpp std_msgs 
+  geometry_msgs 
+  rosidl_typesupport_cpp
 )
 
-generate_messages(
-    DEPENDENCIES
-    std_msgs
- )
+add_executable(roboteq_node_ros2_executable
+  src/rosRoboteqDrv/main.cpp
+  src/rosRoboteqDrv/rosRoboteqDrv.cpp
+  src/roboteqCom/roboteqCom.cpp
+  src/roboteqCom/roboteqThread.cpp
+  src/serialConnector/serialPort.cpp
+)
+ament_target_dependencies(roboteq_node_ros2_executable
+  rclcpp
+  std_msgs
+  geometry_msgs
+  rosidl_typesupport_cpp
+)
+target_link_libraries(
+  roboteq_node_ros2_executable
+  roboteq_node_lib
+  ${PROJECT_NAME}__rosidl_typesupport_cpp
+)
 
-#catkin_package(
-#    CATKIN_DEPENDS
-#    message_runtime
-#)
 
-catkin_package(
-    CATKIN_DEPENDS
-    INCLUDE_DIRS include
-    LIBRARIES ${PROJECT_NAME}
-    CATKIN_DEPENDS roscpp)
+install(TARGETS
+  roboteq_node_ros2_executable
+  roboteq_node_lib
+  DESTINATION lib/${PROJECT_NAME}
+)
 
+install(DIRECTORY launch
+  DESTINATION share/${PROJECT_NAME}/
+)
 
-include_directories(include ${catkin_INCLUDE_DIRS})
-
-add_library(roboteq_node_lib src/rosRoboteqDrv/rosRoboteqDrv.cpp src/roboteqCom/roboteqCom.cpp src/roboteqCom/roboteqThread.cpp src/serialConnector/serialPort.cpp)
-target_link_libraries(roboteq_node_lib ${catkin_LIBRARIES})
-
-add_executable(roboteq_node src/rosRoboteqDrv/main.cpp src/rosRoboteqDrv/rosRoboteqDrv.cpp src/roboteqCom/roboteqCom.cpp src/roboteqCom/roboteqThread.cpp src/serialConnector/serialPort.cpp)
-target_link_libraries(roboteq_node ${catkin_LIBRARIES})
-set_target_properties(roboteq_node PROPERTIES COMPILE_FLAGS -g)
-
-add_dependencies(roboteq_node_lib ${catkin_EXPORTED_TARGETS})
-add_dependencies(roboteq_node ${catkin_EXPORTED_TARGETS})
-add_dependencies(roboteq_node roboteq_node_generate_messages_cpp)
-
-catkin_add_gtest(roboteq_utest test/roboteq_utest.cpp)
-target_link_libraries(roboteq_utest roboteq_node_lib)
+ament_package()

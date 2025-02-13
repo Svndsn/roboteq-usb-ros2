@@ -1,8 +1,18 @@
-roboteq_node/src/roboteqCom/roboteqCom
-roboteq_node/src/roboteqDbg/roboteqDbg
-src/roboteqCom/build/
-src/roboteqCom/roboteqCom
-src/roboteqDbg/roboteqDbg
+# Ignore the build and lib dirs
+build
+lib/*
+
+# Ignore any executables
+bin/*
+
+# Ignore ROS and colcon build artifacts
+install/
+log/
+.colcon/
+
+# Ignore the build and lib dirs
+build
+lib/*
 *.o
 *.log
 *.user
