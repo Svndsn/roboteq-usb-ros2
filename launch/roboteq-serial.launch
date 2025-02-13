@@ -1,5 +1,5 @@
 <launch>
-    <node name="roboteq_serial" pkg="roboteq_node" type="roboteq_node" output="screen" >
+    <node name="roboteq_serial" pkg="roboteq_node_ros2" type="roboteq_node_ros2" output="screen" >
         <param name="mode" value="serial" type="str" />
         <param name="device" value="/dev/ttyUSB0" type="str" />
         <param name="left" value="1" type="str" />
