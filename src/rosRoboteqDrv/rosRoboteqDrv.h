@@ -1,7 +1,7 @@
 #ifndef __ROBOTEQ_DRV_H__
 #define __ROBOTEQ_DRV_H__
 
-#include <geometry_msgs/msg/twist.hpp>  // Twist message file
+#include <geometry_msgs/msg/twist.hpp>
 #include <roboteq_node_ros2/msg/wheels_msg.hpp>
 #include <roboteq_node_ros2/srv/actuators.hpp>
 #include <roboteq_node_ros2/srv/send_can_command.hpp>
