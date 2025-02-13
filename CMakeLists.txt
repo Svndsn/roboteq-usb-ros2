@@ -21,9 +21,6 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   DEPENDENCIES std_msgs
 )
 
-# Export dependencies
-ament_export_dependencies(rosidl_default_runtime)
-
 # Include directories
 include_directories(include)
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/rosidl_generator_cpp)
@@ -65,13 +62,18 @@ target_link_libraries(
 install(TARGETS
   roboteq_node_ros2_executable
   roboteq_node_lib
-  DESTINATION lib/${PROJECT_NAME}
+  DESTINATION lib
 )
 
 # Install launch directory
 install(DIRECTORY launch
   DESTINATION share/${PROJECT_NAME}/
 )
+
+# Export the package for use by other packages
+ament_export_include_directories(include)
+ament_export_libraries(roboteq_node_lib)
+ament_export_dependencies(rosidl_default_runtime rclcpp std_msgs geometry_msgs)
 
 # Mark the package as an ament package
 ament_package()
