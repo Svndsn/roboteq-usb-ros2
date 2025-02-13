@@ -1,9 +1,11 @@
 #ifndef __ROBOTEQ_LOGGER_H__
 #define __ROBOTEQ_LOGGER_H__
 
-#include "serialLogger.h"
-#include <fstream>
 #include <pthread.h>
+
+#include <fstream>
+
+#include "serialLogger.h"
 
 // Roboteq Logger
 // Robert J. Gebis (oxoocoffee) <rjgebis@yahoo.com>
@@ -27,27 +29,28 @@ using namespace oxoocoffee;
 
 class RoboteqLogger : public SerialLogger
 {
-    public:
-        RoboteqLogger(void);
+   public:
+    RoboteqLogger(void);
 
-        bool    Open(const string& filePath, bool threded);
-        void    Close(void);
+    bool Open(const string& filePath, bool threded);
+    void Close(void);
 
-        virtual bool    IsLogOpen(void) const { return _file.is_open(); }
+    virtual bool IsLogOpen(void) const
+    {
+        return _file.is_open();
+    }
 
-        virtual void    LogLine(const char* pBuffer, unsigned int len);
-        virtual void    LogLine(const std::string& message);
+    virtual void LogLine(const char* pBuffer, unsigned int len);
+    virtual void LogLine(const std::string& message);
 
-        // DO NOT Write new line at end
-        virtual void    Log(const char* pBuffer, unsigned int len);
-        virtual void    Log(const std::string& message);
+    // DO NOT Write new line at end
+    virtual void Log(const char* pBuffer, unsigned int len);
+    virtual void Log(const std::string& message);
 
-    private:
-        ofstream        _file;
-        bool            _threaded;
-        pthread_mutex_t _mx;
+   private:
+    ofstream _file;
+    bool _threaded;
+    pthread_mutex_t _mx;
 };
 
-#endif // __ROBOTEQ_LOGGER_H__
-
-
+#endif  // __ROBOTEQ_LOGGER_H__

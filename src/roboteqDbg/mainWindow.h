@@ -2,11 +2,13 @@
 #define __MAIN_WINDOW_H__
 
 #include <ncurses.h>
+
 #include <vector>
+
 #include "roboteqCom.h"
 #include "roboteqLogger.h"
 
-// ncurses roboteq Dbg 
+// ncurses roboteq Dbg
 // Robert J. Gebis (oxoocoffee) <rjgebis@yahoo.com>
 // EDT Chicago (UIC) 2014
 //
@@ -28,83 +30,84 @@ using namespace oxoocoffee;
 
 class MainWindow : public IEventListener<const IEventArgs>
 {
-        typedef vector<string>  TVec;
+    typedef vector<string> TVec;
 
-        enum eMsgDir
-        {
-            eMsgDir_IN,
-            eMsgDir_OUT
-        };
+    enum eMsgDir
+    {
+        eMsgDir_IN,
+        eMsgDir_OUT
+    };
 
-    public:
-        static const int TopSize       = 1;
-        static const int BottomSize    = 2;
-        static const int MaxBufferSize = 128;
+   public:
+    static const int TopSize = 1;
+    static const int BottomSize = 2;
+    static const int MaxBufferSize = 128;
 
-    public:
-                 MainWindow(void);
-                 MainWindow(const string& title);
-        virtual ~MainWindow(void);
+   public:
+    MainWindow(void);
+    MainWindow(const string& title);
+    virtual ~MainWindow(void);
 
-        void    Title(const string& title);
-        bool    Initialize(int argc, char* argv[]);
-        void    Run(void);
-        void    Shutdown(void);
-        void    ResizeNotify(void) { _winSizeChanged = true; }
+    void Title(const string& title);
+    bool Initialize(int argc, char* argv[]);
+    void Run(void);
+    void Shutdown(void);
+    void ResizeNotify(void)
+    {
+        _winSizeChanged = true;
+    }
 
-    private:
-        void    AppendText(WINDOW* win, eMsgDir dir, const char* msg);
-        void    CTorInit(void);
-        void    CreateTopWindow(void);
-        void    CreateMiddleWindow(void);
-        void    CreateBottomWindow(void);
-        void    DrawAllBorders(void);
-        void    DrawTopBorders(void);
-        void    DrawMiddleBorders(void);
-        void    DrawBottomBorders(void);
+   private:
+    void AppendText(WINDOW* win, eMsgDir dir, const char* msg);
+    void CTorInit(void);
+    void CreateTopWindow(void);
+    void CreateMiddleWindow(void);
+    void CreateBottomWindow(void);
+    void DrawAllBorders(void);
+    void DrawTopBorders(void);
+    void DrawMiddleBorders(void);
+    void DrawBottomBorders(void);
 
-        void    Close(void);
-        bool    LoadCommands(const string& filePath);
-        void    EnterAutoCommandMode(void);
-        void    EnterInterectiveMode(void);
-        void    CheckForResize(void);
+    void Close(void);
+    bool LoadCommands(const string& filePath);
+    void EnterAutoCommandMode(void);
+    void EnterInterectiveMode(void);
+    void CheckForResize(void);
 
-        void    RepaintAllPanels(void);
-        void    RepaintTopPanel(void);
-        void    RepaintMiddlePanel(void);
-        void    RepaintBottomPanel(void);
+    void RepaintAllPanels(void);
+    void RepaintTopPanel(void);
+    void RepaintMiddlePanel(void);
+    void RepaintBottomPanel(void);
 
-        void    ProcessUserRequest(void);
+    void ProcessUserRequest(void);
 
-        // RoboteqCom Events
-        virtual void OnMsgEvent(const IEventArgs& evt);
+    // RoboteqCom Events
+    virtual void OnMsgEvent(const IEventArgs& evt);
 
-        void    Process_S(const IEventArgs& evt);
-        void    Process_N(const IEventArgs& evt);
+    void Process_S(const IEventArgs& evt);
+    void Process_N(const IEventArgs& evt);
 
-    private:
-        RoboteqLogger       _logger;
-        RoboteqCom          _comunicator;
-        RoboMutex           _mutex;            // Optionally used if RoboteqCom setup in threaded mode
-        string              _title;
-        WINDOW*             _top;
-        WINDOW*             _middle;
-        WINDOW*             _bottom;
-        int                 _lines;
-        int                 _parentX;
-        int                 _parentY;
-        bool                _keepRunning;
-        bool                _winSizeChanged;
-        char                _inputBuffer[MaxBufferSize+1];
-        int                 _inputLen;
+   private:
+    RoboteqLogger _logger;
+    RoboteqCom _comunicator;
+    RoboMutex _mutex;  // Optionally used if RoboteqCom setup in threaded mode
+    string _title;
+    WINDOW* _top;
+    WINDOW* _middle;
+    WINDOW* _bottom;
+    int _lines;
+    int _parentX;
+    int _parentY;
+    bool _keepRunning;
+    bool _winSizeChanged;
+    char _inputBuffer[MaxBufferSize + 1];
+    int _inputLen;
 
-        string              _device;
-        unsigned int        _looped;    // number ot restarts
-        unsigned int        _delay;     // 100ms minimum
-        TVec                _commands;        
-        RoboteqCom::eMode   _mode;
+    string _device;
+    unsigned int _looped;  // number ot restarts
+    unsigned int _delay;   // 100ms minimum
+    TVec _commands;
+    RoboteqCom::eMode _mode;
 };
 
-#endif // __MAIN_WINDOW_H__
-
-
+#endif  // __MAIN_WINDOW_H__

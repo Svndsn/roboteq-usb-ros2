@@ -5,15 +5,15 @@ RoboteqLogger::RoboteqLogger()
     pthread_mutex_init(&_mx, NULL);
 }
 
-bool    RoboteqLogger::Open(const string& filePath, bool threded)
-{ 
+bool RoboteqLogger::Open(const string& filePath, bool threded)
+{
     _threaded = threded;
 
     Close();
 
-    _file.open( filePath.c_str(), ios_base::out | ios_base::app );
+    _file.open(filePath.c_str(), ios_base::out | ios_base::app);
 
-    if( _file.is_open() )
+    if (_file.is_open())
     {
         _file << "+++++++++ Opened ++++++++" << endl;
         return true;
@@ -22,69 +22,68 @@ bool    RoboteqLogger::Open(const string& filePath, bool threded)
         return false;
 }
 
-void     RoboteqLogger::Close(void)
+void RoboteqLogger::Close(void)
 {
-    if( _file.is_open() )
+    if (_file.is_open())
     {
         _file << "--------- Closed --------" << endl;
         _file.close();
     }
 }
 
-void    RoboteqLogger::LogLine(const char* pBuffer, unsigned int len)
+void RoboteqLogger::LogLine(const char* pBuffer, unsigned int len)
 {
-    if( _file.is_open() )
+    if (_file.is_open())
     {
-        if( _threaded )
+        if (_threaded)
             pthread_mutex_lock(&_mx);
 
         _file.write(pBuffer, len) << std::endl;
 
-        if( _threaded )
+        if (_threaded)
             pthread_mutex_unlock(&_mx);
     }
 }
 
-void    RoboteqLogger::LogLine(const std::string& message)
+void RoboteqLogger::LogLine(const std::string& message)
 {
-    if( _file.is_open() )
+    if (_file.is_open())
     {
-        if( _threaded )
+        if (_threaded)
             pthread_mutex_lock(&_mx);
 
         _file << message << std::endl;
 
-        if( _threaded )
+        if (_threaded)
             pthread_mutex_unlock(&_mx);
     }
 }
 
 // DO NOT Write new line at end
-void    RoboteqLogger::Log(const char* pBuffer, unsigned int len)
+void RoboteqLogger::Log(const char* pBuffer, unsigned int len)
 {
-    if( _file.is_open() )
+    if (_file.is_open())
     {
-        if( _threaded )
+        if (_threaded)
             pthread_mutex_lock(&_mx);
 
         _file.write(pBuffer, len);
-    
-        if( _threaded )
+
+        if (_threaded)
             pthread_mutex_unlock(&_mx);
     }
 }
 
-void    RoboteqLogger::Log(const std::string& message)
+void RoboteqLogger::Log(const std::string& message)
 {
-    if( _file.is_open() )
+    if (_file.is_open())
     {
-         if( _threaded )
+        if (_threaded)
             pthread_mutex_lock(&_mx);
 
         _file << message;
 
-        if( _threaded )
+        if (_threaded)
             pthread_mutex_unlock(&_mx);
     }
 }
-

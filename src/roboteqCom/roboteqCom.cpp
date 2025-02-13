@@ -1,13 +1,15 @@
 #include "roboteqCom.h"
+
+#include <string.h>  // For strtok
 #include <unistd.h>
-#include <string.h> // For strtok
+
 #include <iomanip>
 
 namespace oxoocoffee
 {
 
-#define     ROBO_TERMINATOR		'\r'
-#define	    ROBO_MSG_MAX		1024
+#define ROBO_TERMINATOR '\r'
+#define ROBO_MSG_MAX 1024
 
 string ToHex(const string& s, bool upper_case /* = true */)
 {
@@ -20,31 +22,31 @@ string ToHex(const string& s, bool upper_case /* = true */)
 }
 
 RoboteqCom::RoboteqCom(SerialLogger& log)
- : _port(log), _mode(eSerial), _event(_dummyEvent), _thread(*this)
+    : _port(log), _mode(eSerial), _event(_dummyEvent), _thread(*this)
 {
     // This is just to shut up compiler warning
     // of _dummyEvent not used
     IEventArgs dummy("");
-    _dummyEvent.OnMsgEvent( dummy );
+    _dummyEvent.OnMsgEvent(dummy);
 
     CTorInit();
 }
 
 RoboteqCom::RoboteqCom(SerialLogger& log, IRoboteqEvent& event)
- : _port(log), _mode(eSerial), _event(event), _thread(*this)
+    : _port(log), _mode(eSerial), _event(event), _thread(*this)
 {
     CTorInit();
 }
 
-void    RoboteqCom::CTorInit(void)
+void RoboteqCom::CTorInit(void)
 {
 }
 
-void    RoboteqCom::Open(eMode mode, const string& device)
+void RoboteqCom::Open(eMode mode, const string& device)
 {
     _mode = mode;
 
-    if( mode == eSerial )
+    if (mode == eSerial)
         _port.logLine("RoboteqCom - connecting [SERIAL]");
     else
         _port.logLine("RoboteqCom - connecting [CAN]");
@@ -56,66 +58,67 @@ void    RoboteqCom::Open(eMode mode, const string& device)
     _port.parity(SerialPort::eParity_None);
     _port.flowControl(SerialPort::eFlow_None);
 
-    _port.connect( device );
+    _port.connect(device);
 
     _port.logLine("RoboteqCom - connected");
 
-    if( IssueCommand("#") <= 0 )
+    if (IssueCommand("#") <= 0)
     {
-         _port.log("RoboteqCom - Clears out auto message responce FAILED ");
-         throw std::runtime_error("RoboteqCom - Clears out auto message responce FAILED ");
+        _port.log("RoboteqCom - Clears out auto message responce FAILED ");
+        throw std::runtime_error("RoboteqCom - Clears out auto message responce FAILED ");
     }
 
-    if( IssueCommand("# C") <= 0 )
+    if (IssueCommand("# C") <= 0)
     {
-         _port.log("RoboteqCom - Clears out telemetry strings FAILED ");
-         throw std::runtime_error("RoboteqCom - Clears out telemetry strings FAILED ");
+        _port.log("RoboteqCom - Clears out telemetry strings FAILED ");
+        throw std::runtime_error("RoboteqCom - Clears out telemetry strings FAILED ");
     }
 
-    if( IssueCommand("^ECHOF 1") <= 0)
+    if (IssueCommand("^ECHOF 1") <= 0)
     {
-         _port.log("RoboteqCom - ECHO OFF send FAILED ");
-         throw std::runtime_error("RoboteqCom - ECHO OFF Send FAILED ");
+        _port.log("RoboteqCom - ECHO OFF send FAILED ");
+        throw std::runtime_error("RoboteqCom - ECHO OFF Send FAILED ");
     }
 
-    if( Synchronize( ) == false )
+    if (Synchronize() == false)
     {
         _port.log("RoboteqCom - RoboteqCom - Synchronization Failed ^ECHOF 1");
         throw std::runtime_error("RoboteqCom - RoboteqCom - Synchronization Failed ^ECHOF 1");
     }
 
-    if( _port.isOpen() == false )
+    if (_port.isOpen() == false)
         throw std::runtime_error("RoboteqCom - Synchronization Failed");
 
-    if( IssueCommand("?$1E") > 0 )
+    if (IssueCommand("?$1E") > 0)
     {
         _port.log("RoboteqCom - ver: ");
-    
-        if( ReadReply( _version ) > 0 )
+
+        if (ReadReply(_version) > 0)
         {
             string::size_type Idx = _version.find_first_of("=");
 
-            if( Idx != string::npos)
-                _version = _version.substr( Idx + 1, _version.size() - (Idx + 2));  // Strip '\r'
+            if (Idx != string::npos)
+                _version = _version.substr(Idx + 1, _version.size() - (Idx + 2));  // Strip '\r'
 
             _port.logLine(_version);
 
-            if( IssueCommand("?$1F") > 0 )
+            if (IssueCommand("?$1F") > 0)
             {
                 _port.log("RoboteqCom - mod: ");
-    
-                if( ReadReply( _model ) > 0 )
+
+                if (ReadReply(_model) > 0)
                 {
                     string::size_type Idx = _model.find_first_of(":");
-                    
-                    if( Idx != string::npos)
-                        _model = _model.substr( Idx + 1, _model.size() - (Idx + 2));    // Strip '\r'
+
+                    if (Idx != string::npos)
+                        _model = _model.substr(Idx + 1, _model.size() - (Idx + 2));  // Strip '\r'
 
                     _port.logLine(_model);
                 }
                 else
                 {
-                    ostringstream i2a; i2a << "RoboteqCom - ERROR Model: errno " << errno;
+                    ostringstream i2a;
+                    i2a << "RoboteqCom - ERROR Model: errno " << errno;
                     _port.logLine(i2a.str());
                 }
             }
@@ -127,7 +130,8 @@ void    RoboteqCom::Open(eMode mode, const string& device)
         }
         else
         {
-            ostringstream i2a; i2a << "RoboteqCom - ERROR Version: errno " << errno;
+            ostringstream i2a;
+            i2a << "RoboteqCom - ERROR Version: errno " << errno;
             _port.logLine(i2a.str());
         }
 
@@ -139,7 +143,7 @@ void    RoboteqCom::Open(eMode mode, const string& device)
         throw std::runtime_error("RoboteqCom - checking version FAILED ");
     }
 
-    if( _event.Type() == IRoboteqEvent::eReal )
+    if (_event.Type() == IRoboteqEvent::eReal)
     {
         // Running in threading mode
         _thread.Start();
@@ -147,14 +151,14 @@ void    RoboteqCom::Open(eMode mode, const string& device)
     }
 }
 
-void    RoboteqCom::Close(void)
+void RoboteqCom::Close(void)
 {
     _mtx.Lock();
-    if( _port.isOpen() )
+    if (_port.isOpen())
         _port.disconnect();
     _mtx.UnLock();
 
-    if( _event.Type() == IRoboteqEvent::eReal )
+    if (_event.Type() == IRoboteqEvent::eReal)
     {
         _port.logLine("RoboteqCom - joining reader");
         _thread.Join();
@@ -162,42 +166,42 @@ void    RoboteqCom::Close(void)
     }
 }
 
-int     RoboteqCom::IssueCommand(const char* buffer, int size)
+int RoboteqCom::IssueCommand(const char* buffer, int size)
 {
-    return IssueCommand( string(buffer, size) );
+    return IssueCommand(string(buffer, size));
 }
 
-int     RoboteqCom::IssueCommand(const string&  command,
-                                 const string&  args)
+int RoboteqCom::IssueCommand(const string& command,
+                             const string& args)
 {
-    if( _thread.IsRunning() )
+    if (_thread.IsRunning())
     {
-        //RoboScopedMutex lock(_mtx);
-	
-        if(args == "")
+        // RoboScopedMutex lock(_mtx);
+
+        if (args == "")
             return _port.write(command + ROBO_TERMINATOR);
         else
             return _port.write(command + " " + args + ROBO_TERMINATOR);
     }
     else
     {
-        if(args == "")
+        if (args == "")
             return _port.write(command + ROBO_TERMINATOR);
         else
             return _port.write(command + " " + args + ROBO_TERMINATOR);
     }
 }
 
-int    RoboteqCom::ReadReply(string& reply)
+int RoboteqCom::ReadReply(string& reply)
 {
     reply.clear();
 
-    if( _port.Canonical() == SerialPort::eCanonical_Enable )
+    if (_port.Canonical() == SerialPort::eCanonical_Enable)
     {
         char buf[ROBO_MSG_MAX + 1];
-        int  countRcv(0);
+        int countRcv(0);
 
-        if( (countRcv = _port.read(buf, ROBO_MSG_MAX)) <= 0 )
+        if ((countRcv = _port.read(buf, ROBO_MSG_MAX)) <= 0)
             return 0;
 
         buf[countRcv] = 0;
@@ -209,18 +213,18 @@ int    RoboteqCom::ReadReply(string& reply)
     {
         char byte;
 
-        while(true)
+        while (true)
         {
-            if( _port.read(&byte, 1) <= 0 )
+            if (_port.read(&byte, 1) <= 0)
                 break;
 
-            if( byte == ROBO_TERMINATOR )
+            if (byte == ROBO_TERMINATOR)
             {
-                if( reply.size() == 0 )
+                if (reply.size() == 0)
                     continue;
 
                 return reply.length();
-            } 
+            }
 
             reply.append(&byte, 1);
         }
@@ -229,16 +233,16 @@ int    RoboteqCom::ReadReply(string& reply)
     }
 }
 
-bool    RoboteqCom::Synchronize(void)
+bool RoboteqCom::Synchronize(void)
 {
     char byte;
 
-    while(true)
+    while (true)
     {
-        if( _port.read(&byte, 1) <= 0 )
+        if (_port.read(&byte, 1) <= 0)
             break;
 
-        if( byte == '+' )
+        if (byte == '+')
             return true;
     }
 
@@ -246,25 +250,25 @@ bool    RoboteqCom::Synchronize(void)
 }
 
 // This methods runs on seperate thread
-void    RoboteqCom::Run(void)
+void RoboteqCom::Run(void)
 {
     string buffer;
 
     try
     {
-        while( _port.isOpen() )
+        while (_port.isOpen())
         {
-            if( ReadReply(buffer) > 0 && buffer.size() > 0 )
+            if (ReadReply(buffer) > 0 && buffer.size() > 0)
             {
-                if(buffer[0] != '+')
+                if (buffer[0] != '+')
                 {
-                    IEventArgs evt( buffer);
-                    _event.OnMsgEvent( evt );
+                    IEventArgs evt(buffer);
+                    _event.OnMsgEvent(evt);
                 }
             }
         }
     }
-    catch(...)
+    catch (...)
     {
         _port.logLine("RoboteqCom - reader exiting EXCEPTION");
     }
@@ -272,6 +276,4 @@ void    RoboteqCom::Run(void)
     _port.logLine("RoboteqCom - reader exiting");
 }
 
-}   // End of oxoocoffee namespace
-
-
+}  // namespace oxoocoffee

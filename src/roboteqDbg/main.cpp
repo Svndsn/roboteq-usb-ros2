@@ -1,5 +1,7 @@
 #include <signal.h>
+
 #include <iostream>
+
 #include "mainWindow.h"
 
 MainWindow* app(0L);
@@ -8,8 +10,8 @@ static void PrintHelp(std::string progName)
 {
     string::size_type Idx = progName.find_last_of("\\/");
 
-    if( Idx != string::npos )
-        progName = progName.substr( Idx + 1 );
+    if (Idx != string::npos)
+        progName = progName.substr(Idx + 1);
 
     cout << endl;
     cout << "Usage: " << progName << " -p /dev/tty.???" << endl;
@@ -23,19 +25,19 @@ static void PrintHelp(std::string progName)
 
 static void SigInt(int sig)
 {
-    if( app != 0L && sig == SIGINT)
+    if (app != 0L && sig == SIGINT)
         app->Shutdown();
 }
 
 static void SigResize(int sig)
 {
-    if( app != 0L && sig == SIGWINCH)
+    if (app != 0L && sig == SIGWINCH)
         app->ResizeNotify();
 }
 
 int main(int argc, char* argv[])
 {
-    if( argc == 1 )
+    if (argc == 1)
     {
         PrintHelp(argv[0]);
         return 0;
@@ -45,29 +47,29 @@ int main(int argc, char* argv[])
 
     setlocale(LC_CTYPE, "");
 
-    signal(SIGINT,   SigInt);
+    signal(SIGINT, SigInt);
     signal(SIGWINCH, SigResize);
 
     app->Title("RoboteqDbg");
 
     try
     {
-        if( app->Initialize(argc, argv) )
+        if (app->Initialize(argc, argv))
             app->Run();
 
         refresh();
     }
-    catch(std::exception& ex)
+    catch (std::exception& ex)
     {
-        printw("Exception: %s\n\n", ex.what() );
-        printw("< Press any key to exit...>" );
+        printw("Exception: %s\n\n", ex.what());
+        printw("< Press any key to exit...>");
         refresh();
         getch();
     }
-    catch(...)
+    catch (...)
     {
         printw("Exception: General");
-        printw("< Press any key to exit...>" );
+        printw("< Press any key to exit...>");
         refresh();
         getch();
     }
@@ -76,4 +78,3 @@ int main(int argc, char* argv[])
 
     return 0;
 }
-
