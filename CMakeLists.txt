@@ -64,6 +64,11 @@ install(TARGETS
   roboteq_node_lib
   DESTINATION lib
 )
+install(TARGETS
+  roboteq_node_ros2_executable
+  roboteq_node_lib
+  DESTINATION lib/${PROJECT_NAME}
+)
 
 # Install launch directory
 install(DIRECTORY launch

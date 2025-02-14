@@ -20,6 +20,12 @@ bool RosRoboteqDrv::Initialize()
 {
     try
     {
+        // default parameters, custom can be set in the config roboteq_params.yaml file
+        _nh->declare_parameter("mode", "serial");
+        _nh->declare_parameter("device", "/dev/ttyACM0");
+        _nh->declare_parameter("left", "1");
+        _nh->declare_parameter("right", "2");
+
         std::string mode;
 
         if (!_nh->get_parameter("mode", mode))
