@@ -75,6 +75,10 @@ install(DIRECTORY launch
   DESTINATION share/${PROJECT_NAME}/
 )
 
+install(DIRECTORY config
+  DESTINATION share/${PROJECT_NAME}/
+)
+
 # Export the package for use by other packages
 ament_export_include_directories(include)
 ament_export_libraries(roboteq_node_lib)
