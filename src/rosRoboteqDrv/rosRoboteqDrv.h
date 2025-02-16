@@ -31,6 +31,7 @@
 //                          using ros to physical Roboteq
 // Version 1.2 (05/29/14) - Twist and Velocity conversion function work
 //                          correctly. No more ros::init() error.
+// Version 1.3 (02/16/25) - [Svndsen] - Ported the driver to ROS2
 //
 //
 // This program is free software; you can redistribute it and/or
