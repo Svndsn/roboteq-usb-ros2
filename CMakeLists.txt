@@ -9,7 +9,7 @@ find_package(rosidl_default_generators REQUIRED)
 find_package(rosidl_typesupport_cpp REQUIRED)
 find_package(rosidl_default_runtime REQUIRED)
 
-# Generate custom messages and services
+# Ensure message and service generation
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/WheelsMsg.msg"
   "srv/Actuators.srv"
@@ -17,7 +17,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   DEPENDENCIES std_msgs
 )
 
-# Ensure generated message dependencies are exported
+# Ensure the generated interfaces are available
 ament_export_dependencies(rosidl_default_runtime)
 
 # Include directories
@@ -26,7 +26,12 @@ include_directories(
   ${CMAKE_CURRENT_BINARY_DIR}/rosidl_generator_cpp
 )
 
-# Library containing core functionality
+# Ensure message dependencies are correctly set up
+add_dependencies(${PROJECT_NAME}
+  ${PROJECT_NAME}__rosidl_generator_cpp
+)
+
+# Library
 add_library(roboteq_node_lib SHARED
   src/rosRoboteqDrv/rosRoboteqDrv.cpp
   src/roboteqCom/roboteqCom.cpp
@@ -38,13 +43,10 @@ ament_target_dependencies(roboteq_node_lib
   rclcpp std_msgs geometry_msgs rosidl_typesupport_cpp
 )
 
-# Ensure message files are built before compiling the library
+# Make sure messages are built before compiling the library
 add_dependencies(roboteq_node_lib ${PROJECT_NAME}__rosidl_generator_cpp)
 
-# Link against the generated message types
-target_link_libraries(roboteq_node_lib
-  ${PROJECT_NAME}__rosidl_typesupport_cpp
-)
+target_link_libraries(roboteq_node_lib ${PROJECT_NAME}__rosidl_typesupport_cpp)
 
 # Main executable
 add_executable(roboteq_node_ros2_executable
@@ -59,12 +61,17 @@ ament_target_dependencies(roboteq_node_ros2_executable
   rclcpp std_msgs geometry_msgs rosidl_typesupport_cpp
 )
 
-# Ensure message files are built before compiling the executable
 add_dependencies(roboteq_node_ros2_executable ${PROJECT_NAME}__rosidl_generator_cpp)
 
 target_link_libraries(roboteq_node_ros2_executable
   roboteq_node_lib
   ${PROJECT_NAME}__rosidl_typesupport_cpp
+)
+
+# Ensure the install path includes the generated message headers
+install(DIRECTORY
+  ${CMAKE_CURRENT_BINARY_DIR}/rosidl_generator_cpp/roboteq_node_ros2
+  DESTINATION include/
 )
 
 # Install rules
@@ -77,17 +84,11 @@ install(TARGETS
   RUNTIME DESTINATION bin
 )
 
-
-install(DIRECTORY launch
-  DESTINATION share/${PROJECT_NAME}/
-)
-
-install(DIRECTORY config
-  DESTINATION share/${PROJECT_NAME}/
-)
+install(DIRECTORY launch DESTINATION share/${PROJECT_NAME}/)
+install(DIRECTORY config DESTINATION share/${PROJECT_NAME}/)
 
 # Export dependencies
-ament_export_include_directories(include)
+ament_export_include_directories(${CMAKE_CURRENT_BINARY_DIR}/rosidl_generator_cpp include)
 ament_export_libraries(roboteq_node_lib)
 ament_export_dependencies(rosidl_default_runtime rclcpp std_msgs geometry_msgs)
 
