@@ -1,10 +1,6 @@
-# Minimum CMake version required
 cmake_minimum_required(VERSION 3.5)
-
-# Project name
 project(roboteq_node_ros2)
 
-# Find necessary packages
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
@@ -13,7 +9,7 @@ find_package(rosidl_default_generators REQUIRED)
 find_package(rosidl_typesupport_cpp REQUIRED)
 find_package(rosidl_default_runtime REQUIRED)
 
-# Generate message and service interfaces
+# Generate custom messages and services
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/WheelsMsg.msg"
   "srv/Actuators.srv"
@@ -21,24 +17,36 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   DEPENDENCIES std_msgs
 )
 
-# Include directories
-include_directories(include)
-include_directories(${CMAKE_CURRENT_BINARY_DIR}/rosidl_generator_cpp)
+# Ensure generated message dependencies are exported
+ament_export_dependencies(rosidl_default_runtime)
 
-# Add shared library
+# Include directories
+include_directories(
+  include
+  ${CMAKE_CURRENT_BINARY_DIR}/rosidl_generator_cpp
+)
+
+# Library containing core functionality
 add_library(roboteq_node_lib SHARED
   src/rosRoboteqDrv/rosRoboteqDrv.cpp
   src/roboteqCom/roboteqCom.cpp
   src/roboteqCom/roboteqThread.cpp
   src/serialConnector/serialPort.cpp
 )
+
 ament_target_dependencies(roboteq_node_lib 
-  rclcpp std_msgs 
-  geometry_msgs 
-  rosidl_typesupport_cpp
+  rclcpp std_msgs geometry_msgs rosidl_typesupport_cpp
 )
 
-# Add executable
+# Ensure message files are built before compiling the library
+add_dependencies(roboteq_node_lib ${PROJECT_NAME}__rosidl_generator_cpp)
+
+# Link against the generated message types
+target_link_libraries(roboteq_node_lib
+  ${PROJECT_NAME}__rosidl_typesupport_cpp
+)
+
+# Main executable
 add_executable(roboteq_node_ros2_executable
   src/rosRoboteqDrv/main.cpp
   src/rosRoboteqDrv/rosRoboteqDrv.cpp
@@ -46,44 +54,41 @@ add_executable(roboteq_node_ros2_executable
   src/roboteqCom/roboteqThread.cpp
   src/serialConnector/serialPort.cpp
 )
+
 ament_target_dependencies(roboteq_node_ros2_executable
-  rclcpp
-  std_msgs
-  geometry_msgs
-  rosidl_typesupport_cpp
+  rclcpp std_msgs geometry_msgs rosidl_typesupport_cpp
 )
-target_link_libraries(
-  roboteq_node_ros2_executable
+
+# Ensure message files are built before compiling the executable
+add_dependencies(roboteq_node_ros2_executable ${PROJECT_NAME}__rosidl_generator_cpp)
+
+target_link_libraries(roboteq_node_ros2_executable
   roboteq_node_lib
   ${PROJECT_NAME}__rosidl_typesupport_cpp
 )
 
-# Install targets
+# Install rules
 install(TARGETS
   roboteq_node_ros2_executable
   roboteq_node_lib
-  DESTINATION lib
-)
-install(TARGETS
-  roboteq_node_ros2_executable
-  roboteq_node_lib
-  DESTINATION lib/${PROJECT_NAME}
+  EXPORT roboteq_node_targets
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
 )
 
-# Install launch directory
+
 install(DIRECTORY launch
   DESTINATION share/${PROJECT_NAME}/
 )
 
-# Install config directory
 install(DIRECTORY config
   DESTINATION share/${PROJECT_NAME}/
 )
 
-# Export the package for use by other packages
+# Export dependencies
 ament_export_include_directories(include)
 ament_export_libraries(roboteq_node_lib)
 ament_export_dependencies(rosidl_default_runtime rclcpp std_msgs geometry_msgs)
 
-# Mark the package as an ament package
 ament_package()
