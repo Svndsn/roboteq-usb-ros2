@@ -90,7 +90,6 @@ install(TARGETS
 )
 
 install(DIRECTORY launch DESTINATION share/${PROJECT_NAME}/)
-install(DIRECTORY config DESTINATION share/${PROJECT_NAME}/)
 
 # Export dependencies
 ament_export_include_directories(${CMAKE_CURRENT_BINARY_DIR}/rosidl_generator_cpp include)
