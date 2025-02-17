@@ -20,11 +20,12 @@ bool RosRoboteqDrv::Initialize()
 {
     try
     {
-        // default parameters, custom can be set in the config roboteq_params.yaml file
+        // default parameters, custom can be set in the launch file
         _nh->declare_parameter("mode", "serial");
         _nh->declare_parameter("device", "/dev/ttyACM0");
         _nh->declare_parameter("left", "1");
         _nh->declare_parameter("right", "2");
+        _nh->declare_parameter("cmd_vel_topic", "cmd_vel");
 
         std::string mode;
 
@@ -53,6 +54,13 @@ bool RosRoboteqDrv::Initialize()
         if (!_nh->get_parameter("right", _right))
         {
             RCLCPP_FATAL(_nh->get_logger(), "Please specify right parameter");
+            return false;
+        }
+
+        std::string cmd_vel_topic;
+        if (!_nh->get_parameter("cmd_vel_topic", cmd_vel_topic))
+        {
+            RCLCPP_FATAL(_nh->get_logger(), "Please specify cmd_vel_topic parameter");
             return false;
         }
 
@@ -93,7 +101,7 @@ bool RosRoboteqDrv::Initialize()
         }
 
         _sub = _nh->create_subscription<geometry_msgs::msg::Twist>(
-            "cmd_vel", 10, std::bind(&RosRoboteqDrv::CmdVelCallback, this, std::placeholders::_1));
+            cmd_vel_topic, 10, std::bind(&RosRoboteqDrv::CmdVelCallback, this, std::placeholders::_1));
     }
     catch (std::exception& ex)
     {

@@ -1,8 +1,0 @@
-<launch>
-    <node name="roboteq_can" pkg="roboteq_node_ros2" type="roboteq_node_ros2" output="screen" >
-        <param name="mode" value="can" type="str" />
-        <param name="device" value="/dev/ttyUSB0" type="str" />
-        <param name="left" value="1" type="str" />
-        <param name="right" value="2" type="str" />
-    </node>
-</launch>

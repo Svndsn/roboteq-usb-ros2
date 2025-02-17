@@ -9,6 +9,12 @@ def generate_launch_description():
             package='roboteq_node_ros2',
             executable='roboteq_node_ros2_executable',
             name='roboteq_serial_node',
-            parameters=[get_package_share_directory('roboteq_node_ros2') + '/config/roboteq_params.yaml']
+            parameters=[
+                {'mode': 'serial'},
+                {'device': '/dev/serial/by-id/usb-Roboteq_Motor_Controller_SDC2XXX-if00'},
+                {'left': '1'},
+                {'right': '2'},
+                {'cmd_vel_topic': 'cmd_vel'}
+            ]
         )
     ])

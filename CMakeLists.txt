@@ -84,6 +84,11 @@ install(TARGETS
   RUNTIME DESTINATION bin
 )
 
+install(TARGETS
+  roboteq_node_ros2_executable
+  DESTINATION lib/${PROJECT_NAME}
+)
+
 install(DIRECTORY launch DESTINATION share/${PROJECT_NAME}/)
 install(DIRECTORY config DESTINATION share/${PROJECT_NAME}/)
 
