@@ -126,7 +126,7 @@ We welcome contributions to the project! Here are some guidelines to help you ge
 
 2. **Clone the repository**: Clone your fork to your local machine.
     ```sh
-    git clone https://github.com/your-username/roboteq-usb-ros2.git
+    git clone https://github.com/Svndsn/roboteq-usb-ros2.git
     cd roboteq-usb-ros2
     ```
 
