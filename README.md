@@ -161,8 +161,9 @@ The MIT License (MIT). See the LICENSE file for more information.
 
 ## Authors
 Originally created by:
-Robert J. Gebis (oxoocoffee) <rjgebis@yahoo.com>
-Krystian R. Gebis <krgebis@gmail.com>
+
+Robert J. Gebis (oxoocoffee) <rjgebis@yahoo.com> and Krystian R. Gebis <krgebis@gmail.com>
 
 Updated and ported to ROS2 by:
+
 Simon E. Svendsen (svndsn) <simon.egeris.svendsn@gmail.com>
