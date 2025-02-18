@@ -68,6 +68,7 @@ class RosRoboteqDrv : public SerialLogger, public IEventListener<const IEventArg
     void Run(void);
     void Shutdown(void);
     void CmdVelCallback(const TTwist::SharedPtr twist_velocity);
+    void CmdVelCallback(const TWheelMsg::SharedPtr wheel_velocity);
     bool SetActuatorPosition(const std::shared_ptr<TSrvAct_Req> req,
                              std::shared_ptr<TSrvAct_Res> res);
     bool ManualCANCommand(const std::shared_ptr<TSrvCAN_Req> req,
@@ -99,7 +100,8 @@ class RosRoboteqDrv : public SerialLogger, public IEventListener<const IEventArg
    private:
     bool _logEnabled;
     RoboteqCom _comunicator;
-    rclcpp::Subscription<TTwist>::SharedPtr _sub;
+    rclcpp::Subscription<TTwist>::SharedPtr _sub_twist;
+    rclcpp::Subscription<TWheelMsg>::SharedPtr _sub_wheel;
     rclcpp::Publisher<TWheelMsg>::SharedPtr _pub;
     rclcpp::Service<roboteq_node_ros2::srv::Actuators>::SharedPtr _service;
     rclcpp::Service<roboteq_node_ros2::srv::SendCANCommand>::SharedPtr _can_service;

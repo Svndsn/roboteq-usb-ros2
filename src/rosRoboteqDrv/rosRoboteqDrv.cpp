@@ -100,8 +100,11 @@ bool RosRoboteqDrv::Initialize()
             _comunicator.IssueCommand("# 100");  // auto message response is 500ms
         }
 
-        _sub = _nh->create_subscription<geometry_msgs::msg::Twist>(
-            cmd_vel_topic, 10, std::bind(&RosRoboteqDrv::CmdVelCallback, this, std::placeholders::_1));
+        _sub_twist = _nh->create_subscription<geometry_msgs::msg::Twist>(
+            cmd_vel_topic, 10, std::bind(static_cast<void (RosRoboteqDrv::*)(const geometry_msgs::msg::Twist::SharedPtr)>(&RosRoboteqDrv::CmdVelCallback), this, std::placeholders::_1));
+
+        _sub_wheel = _nh->create_subscription<roboteq_node_ros2::msg::WheelsMsg>(
+            cmd_vel_topic + "_wheel", 10, std::bind(static_cast<void (RosRoboteqDrv::*)(const roboteq_node_ros2::msg::WheelsMsg::SharedPtr)>(&RosRoboteqDrv::CmdVelCallback), this, std::placeholders::_1));
     }
     catch (std::exception& ex)
     {
@@ -130,6 +133,52 @@ void RosRoboteqDrv::CmdVelCallback(const geometry_msgs::msg::Twist::SharedPtr tw
     float rightVelRPM = _wheelVelocity.right / RPM_TO_RAD_PER_SEC;
 
     // now round the wheel velocity to int
+
+    std::stringstream ss;
+
+    if (_comunicator.Mode() == RoboteqCom::eSerial)
+    {
+        ss << "!G " << _left << " " << (((int)leftVelRPM) * 100);
+        ss << "_!G " << _right << " " << (((int)rightVelRPM) * 100);
+    }
+    else
+    {
+        // ss << "@00!G " << _left << " " << (((int)leftVelRPM) * 100);
+        // ss << "_@00!G " << _right << " " << (((int)rightVelRPM) * 100);
+
+        for (int i = 1; i <= 3; i++)  // 3 is number of wheel pairs
+        {
+            if (i != 1)
+                ss << "_";
+
+            ss << "@0" << i << "!G " << _left << " " << (((int)leftVelRPM) * 100);
+            ss << "_@0" << i << "!G " << _right << " " << (((int)rightVelRPM) * 100);
+        }
+    }
+
+    try
+    {
+        _comunicator.IssueCommand(ss.str());
+        RCLCPP_INFO(_nh->get_logger(), "WheelsMsg= %s", ss.str().c_str());
+    }
+    catch (std::exception& ex)
+    {
+        RCLCPP_ERROR(_nh->get_logger(), "IssueCommand : %s", ex.what());
+        throw;
+    }
+    catch (...)
+    {
+        RCLCPP_ERROR(_nh->get_logger(), "IssueCommand : ?");
+        throw;
+    }
+}
+
+void RosRoboteqDrv::CmdVelCallback(const roboteq_node_ros2::msg::WheelsMsg::SharedPtr wheel_velocity)
+{
+    _wheelVelocity = *wheel_velocity;
+
+    float leftVelRPM = _wheelVelocity.left / RPM_TO_RAD_PER_SEC;
+    float rightVelRPM = _wheelVelocity.right / RPM_TO_RAD_PER_SEC;
 
     std::stringstream ss;
 
