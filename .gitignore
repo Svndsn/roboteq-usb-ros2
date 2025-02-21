@@ -17,3 +17,6 @@ lib/*
 *.log
 *.user
 *.pri
+
+# Ignore vscode files
+.vscode/
