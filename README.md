@@ -7,10 +7,12 @@ The node can be used by itself or with multiple drivers in the same configuratio
 - Two-wheel drive (one node)
 - Mecanum omniwheel drive (two nodes with separate commands)
 
+When running multiple drivers, namespaces should be used to differentiate between them.
+
 ## Installation
 Use `colcon build` to install the package:
 ```sh
-colcon build --packages-select roboteq_usb_ros
+colcon build --packages-select roboteq_node_ros2
 ```
 Remember to source the project after building:
 ```sh
@@ -28,7 +30,6 @@ Some parameters are used to specify which topics the node should listen to.
 - `device`: (string) Path to the device file for the motor controller.
 - `left`: (string) Identifier for the left motor.
 - `right`: (string) Identifier for the right motor.
-- `cmd_vel_topic`: (string) Topic name for velocity commands.
 
 ### Custom message
 The `WheelsMsg` is a custom message used to send commands to the motor controllers. It contains the following fields:
@@ -67,8 +68,8 @@ data: [0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08]
 ## Topics
 The node uses topics to communicate.
 ### Subscriptions
-- `/cmd_vel` (geometry_msgs/msg/Twist): The topic for velocity commands, as specified by the `cmd_vel_topic` parameter.
-- `/cmd_vel_wheel` (roboteq_node_ros2/msg/WheelsMsg): The topic for individual wheel commands, as specified by the `cmd_vel_topic` parameter + `_wheel`.
+- `/cmd_vel` (geometry_msgs/msg/Twist): The topic for velocity commands.
+- `/cmd_wheel` (roboteq_node_ros2/msg/WheelsMsg): The topic for individual wheel commands.
 
 ### Publishers
 - `/current_velocity` (roboteq_node_ros2/msg/WheelsMsg): The topic for publishing the current velocity of the wheels.
@@ -79,13 +80,13 @@ To run the node, you need to specify the communication mode and the device file.
 ### Using Serial Communication
 For serial communication, use the following command:
 ```sh
-ros2 run roboteq_usb_ros roboteq_usb_ros_node --ros-args -p mode:=serial -p device:=/dev/ttyUSB0
+ros2 run roboteq_node_ros2 roboteq_node_ros2_executable --ros-args -p mode:=serial -p device:=/dev/ttyUSB0
 ```
 
 ### Using CAN Communication
 For CAN communication, use the following command:
 ```sh
-ros2 run roboteq_usb_ros roboteq_usb_ros_node --ros-args -p mode:=can -p device:=can0
+ros2 run roboteq_node_ros2 roboteq_node_ros2_executable --ros-args -p mode:=can -p device:=can0
 ```
 
 Make sure to replace `/dev/ttyUSB0` and `can0` with the appropriate device file or CAN interface on your system.
@@ -93,7 +94,14 @@ Make sure to replace `/dev/ttyUSB0` and `can0` with the appropriate device file 
 ### Additional Parameters
 You can also specify additional parameters such as `left`, `right`, and `cmd_vel_topic` as needed:
 ```sh
-ros2 run roboteq_usb_ros roboteq_usb_ros_node --ros-args -p mode:=serial -p device:=/dev/ttyUSB0 -p left:=left_motor -p right:=right_motor -p cmd_vel_topic:=/cmd_vel
+ros2 run roboteq_node_ros2 roboteq_node_ros2_executable --ros-args -p mode:=serial -p device:=/dev/ttyUSB0 -p left:=left_motor -p right:=right_motor
+```
+
+### Using Namespaces
+When running multiple drivers, use namespaces to differentiate between them:
+```sh
+ros2 run roboteq_node_ros2 roboteq_node_ros2_executable --ros-args --namespace left_driver -p mode:=serial -p device:=/dev/ttyUSB0
+ros2 run roboteq_node_ros2 roboteq_node_ros2_executable --ros-args --namespace right_driver -p mode:=serial -p device:=/dev/ttyUSB1
 ```
 
 ## Launching with ROS2 Launch
@@ -106,16 +114,15 @@ from launch_ros.actions import Node
 def generate_launch_description():
     return LaunchDescription([
         Node(
-            package='roboteq_usb_ros',
-            executable='roboteq_usb_ros_node',
-            name='roboteq_usb_ros_node',
+            package='roboteq_node_ros2',
+            executable='roboteq_node_ros2_executable',
+            name='roboteq_node_ros2_executable',
             output='screen',
             parameters=[{
                 'mode': 'serial',
                 'device': '/dev/ttyUSB0',
                 'left': 'left_motor',
                 'right': 'right_motor',
-                'cmd_vel_topic': '/cmd_vel'
             }]
         )
     ])
@@ -123,7 +130,7 @@ def generate_launch_description():
 
 To run the node using the launch file, use the following command:
 ```sh
-ros2 launch roboteq_usb_ros roboteq_usb_ros_launch.py
+ros2 launch roboteq_node_ros2 roboteq_usb_ros_launch.py
 ```
 Example launch files are already placed in the `/launch` directory.
 
