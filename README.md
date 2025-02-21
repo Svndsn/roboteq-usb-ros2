@@ -64,6 +64,15 @@ can_id: 123
 data: [0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08]
 ```
 
+## Topics
+The node uses topics to communicate.
+### Subscriptions
+- `/cmd_vel` (geometry_msgs/msg/Twist): The topic for velocity commands, as specified by the `cmd_vel_topic` parameter.
+- `/cmd_vel_wheel` (roboteq_node_ros2/msg/WheelsMsg): The topic for individual wheel commands, as specified by the `cmd_vel_topic` parameter + `_wheel`.
+
+### Publishers
+- `/current_velocity` (roboteq_node_ros2/msg/WheelsMsg): The topic for publishing the current velocity of the wheels.
+
 ## Running
 To run the node, you need to specify the communication mode and the device file. Depending on the mode, the command will differ slightly.
 
