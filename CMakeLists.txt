@@ -24,6 +24,7 @@ ament_export_dependencies(rosidl_default_runtime)
 include_directories(
   include
   ${CMAKE_CURRENT_BINARY_DIR}/rosidl_generator_cpp
+  config
 )
 
 # Ensure message dependencies are correctly set up

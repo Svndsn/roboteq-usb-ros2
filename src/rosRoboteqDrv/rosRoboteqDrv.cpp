@@ -274,12 +274,12 @@ bool RosRoboteqDrv::ManualCANCommand(const std::shared_ptr<TSrvCAN_Req> req,
 geometry_msgs::msg::Twist RosRoboteqDrv::ConvertWheelVelocityToTwist(float left_velocity, float right_velocity)
 {
     // using the two equations for left and right, we solve for long. vel and we get two equations for it. Add them together, and we end up with VL = (right - left) * r / 2
-    float longitudinal_velocity = (right_velocity - left_velocity) * (WHEEL_DIAMETER_SCIPIO / 4);
+    float longitudinal_velocity = (right_velocity - left_velocity) * (WHEEL_DIAMETER / 4);
 
     geometry_msgs::msg::Twist twistVelocity;
 
     // linear.x is just the average of left and right wheel velocities converted to linear by multiplying it by radius
-    twistVelocity.linear.x = ((left_velocity + right_velocity) / 2) * (WHEEL_DIAMETER_SCIPIO / 2);
+    twistVelocity.linear.x = ((left_velocity + right_velocity) / 2) * (WHEEL_DIAMETER / 2);
 
     twistVelocity.angular.z = (longitudinal_velocity * 2 * TRACK_WIDTH) / (TRACK_WIDTH * TRACK_WIDTH + WHEEL_BASE * WHEEL_BASE);
 

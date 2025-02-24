@@ -20,3 +20,6 @@ lib/*
 
 # Ignore vscode files
 .vscode/
+
+# ignore config.h file see example for how to set up config.h
+config.h

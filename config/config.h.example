@@ -1,0 +1,14 @@
+#ifndef config
+#define config
+
+// Uses meters
+
+#define METERS_PER_TICK 0.0011169116
+#define WHEEL_DIAMETER 0.3556
+#define TICK_COLLECTION_PERIOD 0.05
+#define TRACK_WIDTH 0.8636
+#define WHEEL_BASE 0.5334
+#define SLEEP_INTERVAL 0.05
+#define RPM_TO_RAD_PER_SEC 0.1047
+
+#endif  // !config

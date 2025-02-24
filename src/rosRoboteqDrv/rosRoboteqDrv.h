@@ -1,6 +1,8 @@
 #ifndef __ROBOTEQ_DRV_H__
 #define __ROBOTEQ_DRV_H__
 
+#include <config.h>
+
 #include <geometry_msgs/msg/twist.hpp>
 #include <roboteq_node_ros2/msg/wheels_msg.hpp>
 #include <roboteq_node_ros2/srv/actuators.hpp>
@@ -9,15 +11,6 @@
 
 #include "rclcpp/rclcpp.hpp"
 #include "roboteqCom.h"
-
-/// Scipio dimensions and stuff
-#define METERS_PER_TICK_SCIPIO 0.0011169116
-#define WHEEL_DIAMETER_SCIPIO 0.3556
-#define TICK_COLLECTION_PERIOD 0.05
-#define TRACK_WIDTH 0.8636  // 34 inches
-#define WHEEL_BASE 0.5334   // 21 inches
-#define SLEEP_INTERVAL 0.05
-#define RPM_TO_RAD_PER_SEC 0.1047
 
 #define NODE_NAME "roboteq_node_ros2"
 
