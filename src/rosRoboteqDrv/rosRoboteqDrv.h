@@ -1,14 +1,13 @@
 #ifndef __ROBOTEQ_DRV_H__
 #define __ROBOTEQ_DRV_H__
 
-#include <config.h>
-
 #include <geometry_msgs/msg/twist.hpp>
 #include <roboteq_node_ros2/msg/wheels_msg.hpp>
 #include <roboteq_node_ros2/srv/actuators.hpp>
 #include <roboteq_node_ros2/srv/send_can_command.hpp>
 #include <string>
 
+#include "config.h"
 #include "rclcpp/rclcpp.hpp"
 #include "roboteqCom.h"
 
