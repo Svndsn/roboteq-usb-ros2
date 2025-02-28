@@ -22,13 +22,12 @@ source install/setup.zsh
 ```
 
 ## Configuration
-Some parameters are used to specify which topics the node should listen to.
+Parameters are used to specify the motor controller configuration. If multible drivers are used, namespaces can be set to differentiate.
 ### Parameters
 - `mode`: (string) Communication mode, either 'serial' or 'can'.
 - `device`: (string) Path to the device file for the motor controller.
 - `left`: (string) Identifier for the left motor.
 - `right`: (string) Identifier for the right motor.
-- `cmd_vel_topic`: (string) Topic name for velocity commands.
 
 ### Custom message
 The `WheelsMsg` is a custom message used to send commands to the motor controllers. It contains the following fields:
@@ -67,8 +66,8 @@ data: [0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08]
 ## Topics
 The node uses topics to communicate.
 ### Subscriptions
-- `/cmd_vel` (geometry_msgs/msg/Twist): The topic for velocity commands, as specified by the `cmd_vel_topic` parameter.
-- `/cmd_vel_wheel` (roboteq_node_ros2/msg/WheelsMsg): The topic for individual wheel commands, as specified by the `cmd_vel_topic` parameter + `_wheel`.
+- `/cmd_vel` (geometry_msgs/msg/Twist): The topic for velocity commands.
+- `/cmd_vel_wheel` (roboteq_node_ros2/msg/WheelsMsg): The topic for individual wheel commands.
 
 ### Publishers
 - `/current_velocity` (roboteq_node_ros2/msg/WheelsMsg): The topic for publishing the current velocity of the wheels.
@@ -91,9 +90,9 @@ ros2 run roboteq_usb_ros roboteq_usb_ros_node --ros-args -p mode:=can -p device:
 Make sure to replace `/dev/ttyUSB0` and `can0` with the appropriate device file or CAN interface on your system.
 
 ### Additional Parameters
-You can also specify additional parameters such as `left`, `right`, and `cmd_vel_topic` as needed:
+You can also specify additional parameters such as `left` and `right` as needed:
 ```sh
-ros2 run roboteq_usb_ros roboteq_usb_ros_node --ros-args -p mode:=serial -p device:=/dev/ttyUSB0 -p left:=left_motor -p right:=right_motor -p cmd_vel_topic:=/cmd_vel
+ros2 run roboteq_usb_ros roboteq_usb_ros_node --ros-args -p mode:=serial -p device:=/dev/ttyUSB0 -p left:=left_motor -p right:=right_motor
 ```
 
 ## Launching with ROS2 Launch
@@ -103,20 +102,18 @@ You can also use a ROS2 launch file to start the node with predefined parameters
 from launch import LaunchDescription
 from launch_ros.actions import Node
 
-def generate_launch_description():
+def generate_launch_description():    
     return LaunchDescription([
         Node(
-            package='roboteq_usb_ros',
-            executable='roboteq_usb_ros_node',
-            name='roboteq_usb_ros_node',
-            output='screen',
-            parameters=[{
-                'mode': 'serial',
-                'device': '/dev/ttyUSB0',
-                'left': 'left_motor',
-                'right': 'right_motor',
-                'cmd_vel_topic': '/cmd_vel'
-            }]
+            package='roboteq_node_ros2',
+            executable='roboteq_node_ros2_executable',
+            name='roboteq_serial_node',
+            parameters=[
+                {'mode': 'serial'},
+                {'device': '/dev/ttyUSB0'},
+                {'left': '1'},
+                {'right': '2'},
+            ]
         )
     ])
 ```
