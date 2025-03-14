@@ -25,6 +25,7 @@ bool RosRoboteqDrv::Initialize()
         _nh->declare_parameter("device", "/dev/ttyACM0");
         _nh->declare_parameter("left", "1");
         _nh->declare_parameter("right", "2");
+        _nh->declare_parameter("logEncoder", false);
 
         std::string mode;
 
@@ -53,6 +54,13 @@ bool RosRoboteqDrv::Initialize()
         if (!_nh->get_parameter("right", _right))
         {
             RCLCPP_FATAL(_nh->get_logger(), "Please specify right parameter");
+            return false;
+        }
+
+        bool logEncoder;
+        if (!_nh->get_parameter("logEncoder", logEncoder))
+        {
+            RCLCPP_FATAL(_nh->get_logger(), "Please specify logEncoder parameter");
             return false;
         }
 
@@ -90,6 +98,14 @@ bool RosRoboteqDrv::Initialize()
             _comunicator.IssueCommand("?S");     // Query for speed and enters this speed
                                                  // request into telemetry system
             _comunicator.IssueCommand("# 100");  // auto message response is 500ms
+        }
+
+        if (_comunicator.Mode() == RoboteqCom::eSerial && logEncoder)
+        {
+            // Query for encoder counts
+            _comunicator.IssueCommand("?C 1");
+            // set interval to 100ms
+            _comunicator.IssueCommand("# 100");
         }
 
         _sub_twist = _nh->create_subscription<geometry_msgs::msg::Twist>(
@@ -316,6 +332,9 @@ void RosRoboteqDrv::OnMsgEvent(const IEventArgs& evt)
         case 'N':
             Process_N(evt);
             break;
+        case 'C':
+            Process_C(evt);
+            break;
 
         default:
             break;
@@ -378,6 +397,11 @@ void RosRoboteqDrv::Process_G(const IEventArgs& evt)
 
 void RosRoboteqDrv::Process_N(const IEventArgs& evt)
 {
+}
+
+void RosRoboteqDrv::Process_C(const IEventArgs& evt)
+{
+    RCLCPP_INFO(_nh->get_logger(), "Encoder value : %s", evt.Reply().c_str());
 }
 
 bool RosRoboteqDrv::IsLogOpen(void) const

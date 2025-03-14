@@ -88,6 +88,7 @@ class RosRoboteqDrv : public SerialLogger, public IEventListener<const IEventArg
     void Process_S(const IEventArgs& evt);
     void Process_G(const IEventArgs& evt);
     void Process_N(const IEventArgs& evt);
+    void Process_C(const IEventArgs& evt);
 
    private:
     bool _logEnabled;
