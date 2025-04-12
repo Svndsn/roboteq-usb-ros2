@@ -26,6 +26,8 @@ bool RosRoboteqDrv::Initialize()
         _nh->declare_parameter("left", "1");
         _nh->declare_parameter("right", "2");
         _nh->declare_parameter("logEncoder", false);
+        _nh->declare_parameter("encoderNumber", 1);
+        _nh->declare_parameter("logSpeed", false);
 
         std::string mode;
 
@@ -61,6 +63,19 @@ bool RosRoboteqDrv::Initialize()
         if (!_nh->get_parameter("logEncoder", logEncoder))
         {
             RCLCPP_FATAL(_nh->get_logger(), "Please specify logEncoder parameter");
+            return false;
+        }
+
+        int encoderNumber;
+        if (!_nh->get_parameter("encoderNumber", encoderNumber))
+        {
+            RCLCPP_FATAL(_nh->get_logger(), "Please specify encoderNumber parameter");
+            return false;
+        }
+
+        if (!_nh->get_parameter("logSpeed", _logSpeed))
+        {
+            RCLCPP_FATAL(_nh->get_logger(), "Please specify logSpeed parameter");
             return false;
         }
 
@@ -103,7 +118,7 @@ bool RosRoboteqDrv::Initialize()
         if (_comunicator.Mode() == RoboteqCom::eSerial && logEncoder)
         {
             // Query for encoder counts
-            _comunicator.IssueCommand("?C 1");
+            _comunicator.IssueCommand("?C " + std::to_string(encoderNumber));
             // set interval to 100ms
             _comunicator.IssueCommand("# 100");
         }
@@ -369,7 +384,10 @@ void RosRoboteqDrv::Process_S(const IEventArgs& evt)
                 wheelVelocity.left = secondVal * RPM_TO_RAD_PER_SEC;
 
                 _pub->publish(wheelVelocity);
-                // RCLCPP_INFO(_nh->get_logger(), "Wheel RPM's: %d :: %d", firstVal, secondVal);
+                if (_logSpeed)
+                {
+                    RCLCPP_INFO(_nh->get_logger(), "Wheel Velocitys Right and Left: %f :: %f", wheelVelocity.right, wheelVelocity.left);
+                }
             }
             else
             {

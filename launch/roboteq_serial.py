@@ -15,6 +15,8 @@ def generate_launch_description():
                 {'left': '1'},
                 {'right': '2'},
                 {'logEncoder': True},
+                {'encoderNumber': 1},
+                {'logSpeed': False},
             ]
         )
     ])

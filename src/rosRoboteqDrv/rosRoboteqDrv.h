@@ -92,6 +92,7 @@ class RosRoboteqDrv : public SerialLogger, public IEventListener<const IEventArg
 
    private:
     bool _logEnabled;
+    bool _logSpeed;
     RoboteqCom _comunicator;
     rclcpp::Subscription<TTwist>::SharedPtr _sub_twist;
     rclcpp::Subscription<TWheelMsg>::SharedPtr _sub_wheel;
