@@ -14,9 +14,9 @@ def generate_launch_description():
                 {'device': '/dev/serial/by-id/usb-Roboteq_Motor_Controller_SDC2XXX-if00'},
                 {'left': '1'},
                 {'right': '2'},
-                {'logEncoder': True},
+                {'logEncoder': False},
                 {'encoderNumber': 1},
-                {'logSpeed': False},
+                {'logSpeed': True},
             ]
         )
     ])
