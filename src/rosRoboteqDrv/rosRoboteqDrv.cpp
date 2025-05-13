@@ -26,6 +26,7 @@ bool RosRoboteqDrv::Initialize()
         _nh->declare_parameter("left", "1");
         _nh->declare_parameter("right", "2");
         _nh->declare_parameter("logEncoder", false);
+        _nh->declare_parameter("logAmps", false);
         _nh->declare_parameter("encoderNumber", 1);
         _nh->declare_parameter("logSpeed", false);
 
@@ -63,6 +64,13 @@ bool RosRoboteqDrv::Initialize()
         if (!_nh->get_parameter("logEncoder", logEncoder))
         {
             RCLCPP_FATAL(_nh->get_logger(), "Please specify logEncoder parameter");
+            return false;
+        }
+
+        bool logAmps;
+        if (!_nh->get_parameter("logAmps", logAmps))
+        {
+            RCLCPP_FATAL(_nh->get_logger(), "Please specify logAmps parameter");
             return false;
         }
 
@@ -119,6 +127,14 @@ bool RosRoboteqDrv::Initialize()
         {
             // Query for encoder counts
             _comunicator.IssueCommand("?C " + std::to_string(encoderNumber));
+            // set interval to 100ms
+            _comunicator.IssueCommand("# 100");
+        }
+
+        if (_comunicator.Mode() == RoboteqCom::eSerial && logAmps)
+        {
+            // Query for current
+            _comunicator.IssueCommand("?A");
             // set interval to 100ms
             _comunicator.IssueCommand("# 100");
         }
@@ -350,6 +366,9 @@ void RosRoboteqDrv::OnMsgEvent(const IEventArgs& evt)
         case 'C':
             Process_C(evt);
             break;
+        case 'A':
+            Process_A(evt);
+            break;
 
         default:
             break;
@@ -420,6 +439,11 @@ void RosRoboteqDrv::Process_N(const IEventArgs& evt)
 void RosRoboteqDrv::Process_C(const IEventArgs& evt)
 {
     RCLCPP_INFO(_nh->get_logger(), "Encoder value : %s", evt.Reply().c_str());
+}
+
+void RosRoboteqDrv::Process_A(const IEventArgs& evt)
+{
+    RCLCPP_INFO(_nh->get_logger(), "Current value : %s", evt.Reply().c_str());
 }
 
 bool RosRoboteqDrv::IsLogOpen(void) const
